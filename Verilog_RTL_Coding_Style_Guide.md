@@ -167,9 +167,24 @@ crc_value
 | `_index` | 索引 |
 | `_latched` | 锁存值 |
 | `_next` | 下一计算值 |
-| `_sync` | 同步后信号 |
-| `_meta` | 同步链第一级 |
+| `_1d` | 延迟一个目标时钟周期或同步链第一级 |
+| `_2d` | 延迟两个目标时钟周期或同步链第二级 |
+| `_3d` | 延迟三个目标时钟周期；更多级数按相同规则扩展 |
+| `_pos` | 检测到上升沿时产生的单周期脉冲 |
+| `_neg` | 检测到下降沿时产生的单周期脉冲 |
 | `_n` | 低有效信号 |
+
+打拍寄存器的级数后缀必须与实际寄存器级数一致，并从 `_1d` 开始连续命名，不得跳级或使用同一后缀表示不同延迟级数：
+
+```text
+data_valid_1d
+data_valid_2d
+data_valid_3d
+```
+
+同步链与普通打拍寄存器统一使用 `_1d`、`_2d`、`_3d` 等级数后缀。
+
+`_pos` 和 `_neg` 只表示边沿检测产生的单周期脉冲，不表示寄存器使用 `posedge` 或 `negedge` 采样。
 
 同一个概念应使用同一种缩写，禁止在同一工程中混用类似名称：
 
@@ -320,11 +335,12 @@ always @(posedge clk)
 ```verilog
 always @(posedge clk or posedge reset) begin
     if (reset) begin
-        async_meta <= 1'b0;
-        async_sync <= 1'b0;
-    end else begin
-        async_meta <= async_in;
-        async_sync <= async_meta;
+        async_in_1d <= 1'b0;
+        async_in_2d <= 1'b0;
+    end
+    else begin
+        async_in_1d <= async_in;
+        async_in_2d <= async_in_1d;
     end
 end
 ```
@@ -592,6 +608,34 @@ always @(posedge clk or posedge reset) begin
 end
 ```
 
+同步信号的边沿检测推荐写法：
+
+```verilog
+reg  signal_1d  ;
+
+wire signal_pos ;
+wire signal_neg ;
+
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        signal_1d <= 1'b0;
+    end
+    else begin
+        signal_1d <= signal;
+    end
+end
+
+assign signal_pos = signal && !signal_1d;
+assign signal_neg = !signal && signal_1d;
+```
+
+要求：
+
+- `signal`必须已经同步到当前时钟域。
+- `signal_pos`只在检测到上升沿时保持一个时钟周期。
+- `signal_neg`只在检测到下降沿时保持一个时钟周期。
+- 边沿检测历史值使用 `_1d`，上升沿和下降沿脉冲分别使用 `_pos`和 `_neg`。
+
 Valid/Ready握手规则：
 
 ```text
@@ -612,11 +656,12 @@ transfer = valid && ready
 ```verilog
 always @(posedge clk or posedge reset) begin
     if (reset) begin
-        async_meta <= 1'b0;
-        async_sync <= 1'b0;
-    end else begin
-        async_meta <= async_in;
-        async_sync <= async_meta;
+        async_in_1d <= 1'b0;
+        async_in_2d <= 1'b0;
+    end
+    else begin
+        async_in_1d <= async_in;
+        async_in_2d <= async_in_1d;
     end
 end
 ```
@@ -777,6 +822,9 @@ end
 - [ ] 计数器位宽足够且不过度。
 - [ ] 不存在加减法下溢或溢出。
 - [ ] 单周期脉冲宽度正确。
+- [ ] 打拍寄存器使用连续且与实际级数一致的 `_1d`、`_2d`、`_3d` 后缀。
+- [ ] CDC同步链使用与实际同步级数一致的级数后缀。
+- [ ] 上升沿和下降沿检测脉冲分别使用 `_pos`和 `_neg`，且脉冲宽度为一个时钟周期。
 - [ ] 模块握手关系明确。
 - [ ] 参数和协议常量没有魔法数字。
 - [ ] 所有模块使用具名端口连接。
