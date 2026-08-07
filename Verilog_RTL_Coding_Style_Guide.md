@@ -773,6 +773,8 @@ Testbench应包含：
 - 明确的PASS/FAIL输出；
 - 必要的波形文件。
 
+同步输入激励应在 `clk` 上升沿使用非阻塞赋值更新，DUT从下一个上升沿开始采样。这样可使激励波形边沿与时钟上升沿严格重合，同时避免Testbench与DUT之间的仿真竞争。异步复位的拉高不受此限制，仍可在任意时刻发生。
+
 示例：
 
 ```verilog
@@ -780,11 +782,13 @@ initial begin
     $dumpfile("simulation.vcd");
     $dumpvars(0, tb_top);
 
+    // 异步复位可在任意时刻拉高
     reset = 1'b1;
     repeat (3)
         @(posedge clk);
 
-    reset = 1'b0;
+    // 同步输入在时钟上升沿使用非阻塞赋值更新
+    reset <= 1'b0;
 
     // Test stimulus and checks
 
