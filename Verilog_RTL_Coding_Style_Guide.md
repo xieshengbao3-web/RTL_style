@@ -520,7 +520,7 @@ localparam [1:0] STATE_SEND = 2'd1;
 localparam [1:0] STATE_WAIT = 2'd2;
 ```
 
-推荐将状态寄存器和下一状态组合逻辑分开：
+推荐将状态寄存器和下一状态组合逻辑分开。状态机尽量写成三段式：状态寄存器、下一状态组合逻辑、输出逻辑分别放在独立的 `always` 块中：
 
 ```verilog
 always @(posedge clk or posedge reset) begin
@@ -557,6 +557,7 @@ end
 
 要求：
 
+- 状态机尽量写成三段式：状态寄存器、下一状态组合逻辑、输出逻辑分别放在独立的 `always` 块中。
 - `case`必须包含 `default`。
 - 非法状态应恢复到安全状态。
 - 状态输出不得形成组合环路。
