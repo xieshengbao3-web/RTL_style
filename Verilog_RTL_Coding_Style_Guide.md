@@ -63,6 +63,7 @@ endmodule
 
 - 使用4个空格缩进，不使用Tab。
 - 每行只写一条主要语句。
+- `for` 循环头和 `if`、`else if` 等逻辑判断条件尽量保持在同一行，即使表达式较长也不主动换行；只有单行过长并明显影响阅读时才拆分。
 - 文件末尾保留换行。
 - 不在行尾保留无意义空格。
 - 相关代码之间不插入过多空行。
@@ -112,6 +113,51 @@ always @(posedge clk or posedge reset) begin
     else begin
         done <= transfer_done;
     end
+end
+```
+
+### 3.2 循环和逻辑判断格式
+
+`for` 循环变量优先使用 `i`、`j`、`k` 等简短名称，并按照循环嵌套层级依次使用。不要使用 `index` 作为临时循环变量。该规则只适用于循环变量，具有明确功能含义的索引信号仍应使用 `byte_index`、`channel_index` 等名称。
+
+```verilog
+integer i;
+integer j;
+
+always @(*) begin
+    for (i = 0; i < CHANNEL_COUNT; i = i + 1) begin
+        for (j = 0; j < BYTE_COUNT; j = j + 1) begin
+            channel_data[i][(j*8) +: 8] = payload_data[(i*BYTE_COUNT*8) + (j*8) +: 8];
+        end
+    end
+end
+```
+
+较长的 `for` 循环头和逻辑判断条件也应尽量保持单行：
+
+```verilog
+for (i = 0; i < (PAYLOAD_BYTES + HEADER_BYTES + CRC_BYTES); i = i + 1) begin
+    frame_data[(i*8) +: 8] = source_data[(i*8) +: 8];
+end
+
+if (request_valid && request_ready && !transfer_busy && (payload_count < MAX_PAYLOAD_COUNT)) begin
+    request_accept = 1'b1;
+end
+```
+
+不推荐将循环头或逻辑判断机械拆成多行：
+
+```verilog
+for (index = 0;
+     index < PAYLOAD_BYTES;
+     index = index + 1) begin
+    // ...
+end
+
+if (request_valid &&
+    request_ready &&
+    !transfer_busy) begin
+    // ...
 end
 ```
 
@@ -703,7 +749,7 @@ submodule submodule_inst (
 
 实例化要求：
 
-- 一个参数或端口占一行。
+- 模块例化时，每个参数和每个端口连接各占一行，不得在同一行连接多个端口。
 - 连接名称和模块端口含义一致。
 - 未使用输出应明确悬空或连接到命名清晰的未使用信号。
 - 不保留无意义的中间连线。
@@ -833,12 +879,14 @@ end
 - [ ] 模块握手关系明确。
 - [ ] 参数和协议常量没有魔法数字。
 - [ ] 所有模块使用具名端口连接。
+- [ ] 模块例化时，每个参数和每个端口连接各占一行。
 - [ ] 不存在未使用信号。
 - [ ] 注释中的单位和实际接口一致。
 - [ ] 功能相关的代码保持相邻，不相关功能之间有明确分隔。
 - [ ] 代码按照条件或数据产生、中间处理、状态更新和结果输出的因果顺序排列。
 - [ ] 相关代码组内的参数、声明和 `assign` 已对齐名称、赋值符号及行尾分隔符。
-- [ ] 较短表达式保持单行，长表达式换行和缩进一致。
+- [ ] `for` 循环变量优先使用 `i`、`j`、`k`，未使用 `index` 作为临时循环变量。
+- [ ] `for` 循环头和逻辑判断条件尽量保持单行；确需换行时缩进一致。
 - [ ] Verilog-2001编译无错误和警告。
 - [ ] 自检Testbench输出PASS。
 - [ ] 关键场景已保留波形。
